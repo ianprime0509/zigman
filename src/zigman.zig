@@ -167,20 +167,30 @@ fn cmdPrune(gpa: Allocator, args: []const []const u8) !void {
 }
 
 fn cmdRemove(gpa: Allocator, args: []const []const u8) !void {
-    _ = gpa;
-    _ = args;
+    if (args.len == 0) return fatal("no version provided", .{});
+    if (args.len > 1) return fatal("too many arguments", .{});
 
-    return fatal("TODO: implement remove command", .{});
+    const available = loadAvailableInstallations(gpa) catch |err|
+        return fatal("failed to load Zig installations: {}", .{err});
+    defer gpa.free(available);
+    const remove_index = findMatchingInstallationIndex(available, .parse(args[0])) orelse
+        return fatal("no Zig matching '{s}'", .{args[0]});
+    const new_available = try gpa.alloc(ZigInstallation, available.len - 1);
+    defer gpa.free(new_available);
+    @memcpy(new_available[0..remove_index], available[0..remove_index]);
+    @memcpy(new_available[remove_index..], available[remove_index + 1 ..]);
+    saveAvailableInstallations(gpa, new_available) catch |err|
+        return fatal("failed to save Zig installations: {}", .{err});
 }
 
 fn cmdRun(gpa: Allocator, args: []const []const u8) !noreturn {
     if (args.len == 0) return fatal("no version provided", .{});
 
-    const query = ZigInstallation.Query.parse(args[0]);
     const available = loadAvailableInstallations(gpa) catch |err|
         return fatal("failed to load Zig installations: {}", .{err});
     defer gpa.free(available);
-    const zig_index = findMatchingInstallationIndex(available, query) orelse return fatal("no Zig matching '{s}'", .{args[0]});
+    const zig_index = findMatchingInstallationIndex(available, .parse(args[0])) orelse
+        return fatal("no Zig matching '{s}'", .{args[0]});
     try execZig(gpa, available[zig_index], args[1..]);
 }
 
