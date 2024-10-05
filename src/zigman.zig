@@ -4,7 +4,7 @@ const log = std.log;
 const Allocator = std.mem.Allocator;
 const known_folders = @import("known-folders");
 
-var log_tty_config: std.io.tty.Config = undefined; // Will be initialized immediately in main
+var log_tty_config: std.io.tty.Config = undefined; // will be initialized immediately in main
 
 pub const std_options: std.Options = .{
     .logFn = logImpl,
